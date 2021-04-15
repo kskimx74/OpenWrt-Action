@@ -1,0 +1,140 @@
+name:  R2S-Minimal
+
+on:
+  repository_dispatch:
+  workflow_dispatch:
+#   schedule:
+#     - cron: * 0 * * 0,2,5
+
+env:
+  TZ: Asia/Shanghai    
+jobs:
+  R2S-18_06:
+    runs-on: ubuntu-18.04
+    steps:
+    
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+      
+    - name: Init Building Dependencies
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo timedatectl set-timezone "$TZ"
+        echo "Init Building":$(date +%F_%H%M%S)
+        docker rmi $(docker images -q)
+        sudo -E apt-get remove -y --purge azure-cli ghc zulu* hhvm llvm* firefox google* dotnet* powershell mysql* php* mssql-tools msodbcsql17 android*
+        sudo -E apt-get update -y
+        sudo -E apt-get full-upgrade -y
+        sudo -E apt-get install -y build-essential asciidoc binutils bzip2 coreutils gawk gettext git libncurses5-dev libz-dev patch unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-8 gcc++-8 gcc-8-multilib g++-8-multilib p7zip p7zip-full msmtp libssl-dev texinfo libreadline-dev libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint ccache curl wget vim nano python python3 python-pip python3-pip python3-setuptools python-ply python3-ply haveged lrzsz device-tree-compiler scons antlr3 gperf ecj fastjar re2c xz-utils tar zip
+        sudo -EH pip3 install -U pyrogram tgCrypto
+        for i in $(ls /usr/bin/*-8); do sudo -E ln -sf $i ${i%%-8*}; done
+        sudo -E ln -sf /usr/include/asm-generic /usr/include/asm
+        sudo -E apt-get autoremove -y --purge
+        sudo -E apt-get clean -y
+        sudo -E swapoff -a
+        sudo -E rm -rf /usr/share/dotnet /etc/mysql /etc/php /usr/local/lib/android /opt/ghc /swapfile
+        
+    - name: Clone Source
+      run: |
+        echo "Clone Source":$(date +%F_%H%M%S)
+        df -hP
+        cd "/home/runner"
+        git clone --branch "openwrt-18.06-k5.4" --single-branch "https://github.com/immortalwrt/immortalwrt" "immortalwrt"
+        mkdir -v firmware/ package/ buildinfo/ upload/ && mkdir -pv "/home/runner/immortalwrt/files/etc/config/"
+        cp -f "${GITHUB_WORKSPACE}/config/R2S-Mini.conf" "/home/runner/immortalwrt/.config"
+        cp -f "${GITHUB_WORKSPACE}/files/R2S/proxy_resolv.conf" "/home/runner/immortalwrt/files/etc/proxy_resolv.conf"
+        cp -f "${GITHUB_WORKSPACE}/files/R2S/dhcp" "/home/runner/immortalwrt/files/etc/config/dhcp"
+        cp -f "${GITHUB_WORKSPACE}/files/R2S/network" "/home/runner/immortalwrt/files/etc/config/network"
+        cp -f "${GITHUB_WORKSPACE}/files/R2S/system" "/home/runner/immortalwrt/files/etc/config/system"
+        #cp -f "${GITHUB_WORKSPACE}/config/R2S-Mini.conf" "/home/runner/immortalwrt/.config"
+        sudo chown -R runner:runner firmware/ package/ buildinfo/ upload/ immortalwrt/
+        ls -lh ./
+        cd "/home/runner/immortalwrt"
+        #sudo sed -i 's/192.168.1.1/192.168.2.254/g' package/base-files/files/bin/config_generate
+        #cat -n package/base-files/files/bin/config_generate
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+        
+#     - name: Start SSH via tmate
+#       uses: P3TERX/ssh2actions@main
+#       # Send connection info to Telegram (optional)
+#       # You can find related documents here: https://core.telegram.org/bo ts
+#       env:
+#         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+#         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+    - name: Build ImmortalWrt-18.06
+      id: build
+      run: |
+        echo "Build ImmortalWrt":$(date +%F_%H%M%S)
+        cd "/home/runner/immortalwrt"
+        sudo egrep -v '^$|#' .config > $(date +%F_%H%M%S)_config_bk.out
+        ls -lah 
+        sudo cp ./*config_bk.out /home/runner/upload/ && ls -lah /home/runner/upload/
+        make download -j8
+        find dl -size -1024c -exec ls -l {} \;
+        find dl -size -1024c -exec rm -f {} \;
+        make defconfig
+        make -j$[$(nproc)+1] V=s
+        df -hP
+        tree -d bin/
+        tree bin/
+        ls -lSha bin/targets/rockchip/armv8/
+        
+#     - name: Check Build
+#       uses: P3TERX/ssh2actions@main
+#       # Send connection info to Telegram (optional)
+#       # You can find related documents here: https://core.telegram.org/bo ts
+#       env:
+#         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+#         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+  
+    - name: Prepare artifact
+      run: |
+        echo "Prepare artifact":$(date +%F_%H%M%S)
+        cd /home/runner/
+        rm -rf $(find /home/runner/immortalwrt/bin/targets/ -type d -name "packages")
+        cp -rf $(find /home/runner/immortalwrt/bin/targets/ -type f) /home/runner/firmware/
+        cp -rf $(find /home/runner/immortalwrt/bin/packages/ -type f -name "*.ipk") /home/runner/package/
+        cp -rf $(find /home/runner/immortalwrt/bin/targets/ -type f -name "*.buildinfo" -o -name "*.manifest") /home/runner/buildinfo/
+        cp -rf $(find /home/runner/immortalwrt/bin/targets/ -type f -name "*.buildinfo" -o -name "sha256sums" -o -name "*.manifest" -o -name "immortalwrt*.gz") /home/runner/upload/
+        ls -lSha firmware/ package/ buildinfo/ upload/
+        
+    - name: Deliver buildinfo
+      uses: actions/upload-artifact@v2
+      with:
+        name: OpenWrt_buildinfo
+        path: /home/runner/buildinfo/
+
+    - name: Deliver package
+      uses: actions/upload-artifact@v2
+      with:
+        name: OpenWrt_package
+        path: /home/runner/package/
+
+    - name: Deliver firmware
+      uses: actions/upload-artifact@v2
+      with:
+        name: OpenWrt_firmware
+        path: /home/runner/immortalwrt/bin/targets/x86/64/
+
+    - name: Generate release tag
+      id: tag
+      run: |
+        echo "::set-output name=release_tag::$(date +"%F_%H%M%S")-R2S-Minimal_1806"
+        echo "::set-output name=release_date::$(date +"%F_%H%M%S")"
+        touch release.txt
+        echo "::set-output name=status::success"
+        
+    - name: Upload firmware to release
+      uses: softprops/action-gh-release@v1
+      if: steps.tag.outputs.status == 'success' && !cancelled()
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        name: ${{ steps.tag.outputs.release_date }} R2S-Minimal_1806
+        tag_name: ${{ steps.tag.outputs.release_tag }}
+        body_path: release.txt
+        files: |
+          /home/runner/upload/*
