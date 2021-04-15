@@ -122,7 +122,7 @@ jobs:
     - name: Generate release tag
       id: tag
       run: |
-        echo "::set-output name=release_tag::$(date +"%F_%H%M%S")-R2S-Minimal_1806"
+        echo "::set-output name=release_tag::R2S-Mini-$(date +"%F_%H%M%S")"
         echo "::set-output name=release_date::$(date +"%F_%H%M%S")"
         touch release.txt
         echo "::set-output name=status::success"
@@ -133,7 +133,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        name: ${{ steps.tag.outputs.release_date }} R2S-Minimal_1806
+        name: R2S-Mini ${{ steps.tag.outputs.release_date }}
         tag_name: ${{ steps.tag.outputs.release_tag }}
         body_path: release.txt
         files: |
