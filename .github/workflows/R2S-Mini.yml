@@ -133,7 +133,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        name: ${{ steps.tag.outputs.release_date }} R2S-Mini
+        name: R2S-Mini-${{ steps.tag.outputs.release_date }}
         tag_name: ${{ steps.tag.outputs.release_tag }}
         body_path: release.txt
         files: |
