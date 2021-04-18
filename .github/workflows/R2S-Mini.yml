@@ -128,7 +128,7 @@ jobs:
         echo "::set-output name=status::success"
         
     - name: Upload firmware to release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@master
       if: steps.tag.outputs.status == 'success' && !cancelled()
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -138,3 +138,11 @@ jobs:
         body_path: release.txt
         files: |
           /home/runner/upload/*
+    - name: Notify Action Result to Telegram
+      if: ${{ success() }}
+      id: notify
+      uses: appleboy/telegram-action@master
+      with:
+        to: ${{ secrets.TELEGRAM_CHAT_ID }}
+        token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        args: ${{ steps.tag.outputs.release_date }} The schedule ${{ steps.tag.outputs.release_tag }} compiled successfully!
