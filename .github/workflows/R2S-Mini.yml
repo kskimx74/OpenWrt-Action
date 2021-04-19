@@ -3,8 +3,8 @@ name:  R2S-Minimal
 on:
   repository_dispatch:
   workflow_dispatch:
-#   schedule:
-#     - cron: * 0 * * 0,2,5
+  schedule:
+    - cron: 0 17 * * 0,5
 
 env:
   TZ: Asia/Shanghai    
