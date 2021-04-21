@@ -51,8 +51,6 @@ jobs:
         sudo chown -R runner:runner firmware/ package/ buildinfo/ upload/ immortalwrt/
         ls -lh ./
         cd "/home/runner/immortalwrt"
-        #sudo sed -i 's/192.168.1.1/192.168.2.254/g' package/base-files/files/bin/config_generate
-        #cat -n package/base-files/files/bin/config_generate
         echo "src-git helloworld https://github.com/fw876/helloworld"  >> feeds.conf.default
         cat feeds.conf.default 
         ./scripts/feeds update -a
@@ -100,7 +98,7 @@ jobs:
         cp -rf $(find /home/runner/immortalwrt/bin/targets/ -type f) /home/runner/firmware/
         cp -rf $(find /home/runner/immortalwrt/bin/packages/ -type f -name "*.ipk") /home/runner/package/
         cp -rf $(find /home/runner/immortalwrt/bin/targets/ -type f -name "*.buildinfo" -o -name "*.manifest") /home/runner/buildinfo/
-        cp -rf $(find /home/runner/immortalwrt/bin/targets/ -type f -name "*.buildinfo" -o -name "sha256sums" -o -name "*.manifest" -o -name "immortalwrt*.gz") /home/runner/upload/
+        cp -rf $(find /home/runner/immortalwrt/bin/targets/ -type f -name "*.buildinfo" -o -name "sha256sums" -o -name "*.manifest" -o -name "*nanopi-r2s*.gz") /home/runner/upload/
         ls -lSha firmware/ package/ buildinfo/ upload/
         
     - name: Deliver buildinfo
@@ -119,7 +117,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: OpenWrt_firmware
-        path: /home/runner/immortalwrt/bin/targets/x86/64/
+        path: /home/runner/immortalwrt/bin/targets/rockchip/armv8/
 
     - name: Generate release tag
       id: tag
