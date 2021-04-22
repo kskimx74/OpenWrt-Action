@@ -42,37 +42,31 @@ jobs:
         cd "/home/runner"
         git clone --branch "openwrt-18.06-k5.4" --single-branch "https://github.com/immortalwrt/immortalwrt" "immortalwrt"
         mkdir -v firmware/ package/ buildinfo/ upload/ && mkdir -pv "/home/runner/immortalwrt/files/etc/config/"
-        cp -f "${GITHUB_WORKSPACE}/config/R2S-seed.config" "/home/runner/immortalwrt/.config"
+        #cp -f "${GITHUB_WORKSPACE}/config/R2S-seed.config" "/home/runner/immortalwrt/.config"
         cp -f "${GITHUB_WORKSPACE}/files/R2S/proxy_resolv.conf" "/home/runner/immortalwrt/files/etc/proxy_resolv.conf"
         cp -f "${GITHUB_WORKSPACE}/files/R2S/dhcp" "/home/runner/immortalwrt/files/etc/config/dhcp"
         cp -f "${GITHUB_WORKSPACE}/files/R2S/network" "/home/runner/immortalwrt/files/etc/config/network"
         cp -f "${GITHUB_WORKSPACE}/files/R2S/system" "/home/runner/immortalwrt/files/etc/config/system"
-        #cp -f "${GITHUB_WORKSPACE}/config/R2S-Mini.conf" "/home/runner/immortalwrt/.config"
         sudo chown -R runner:runner firmware/ package/ buildinfo/ upload/ immortalwrt/
         ls -lh ./
         cd "/home/runner/immortalwrt"
-        echo "src-git helloworld https://github.com/fw876/helloworld"  >> feeds.conf.default
-        cat feeds.conf.default 
         ./scripts/feeds update -a
         ./scripts/feeds install -a
         
-#     - name: Start SSH via tmate
-#       uses: P3TERX/ssh2actions@main
-#       # Send connection info to Telegram (optional)
-#       # You can find related documents here: https://core.telegram.org/bo ts
-#       env:
-#         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-#         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    - name: Start SSH via tmate
+      uses: P3TERX/ssh2actions@main
+      # Send connection info to Telegram (optional)
+      # You can find related documents here: https://core.telegram.org/bo ts
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
     - name: Build ImmortalWrt-18.06
       id: build
       run: |
         echo "Build ImmortalWrt":$(date +%F_%H%M%S)
         cd "/home/runner/immortalwrt"
-        sudo egrep -v '^$|#' .config > $(date +%F_%H%M%S)_config_bk.out
-        ls -lah 
-        sudo cp ./*config_bk.out /home/runner/upload/ && ls -lah /home/runner/upload/
-        make download -j8
+        make download -j8 V=s
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
         make defconfig
@@ -81,6 +75,7 @@ jobs:
         tree -d bin/
         tree bin/
         ls -lSha bin/targets/rockchip/armv8/
+        ls -lha ./
         
 #     - name: Check Build
 #       uses: P3TERX/ssh2actions@main
@@ -138,11 +133,4 @@ jobs:
         body_path: release.txt
         files: |
           /home/runner/upload/*
-    - name: Notify Action Result to Telegram
-      if: ${{ success() }}
-      id: notify
-      uses: appleboy/telegram-action@master
-      with:
-        to: ${{ secrets.TELEGRAM_CHAT_ID }}
-        token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        args: ${{ steps.tag.outputs.release_date }} The schedule ${{ steps.tag.outputs.release_tag }} compiled successfully!
+
