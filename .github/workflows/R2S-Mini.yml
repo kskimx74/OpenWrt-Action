@@ -41,7 +41,8 @@ jobs:
         df -hP
         cd "/home/runner"
         git clone --branch "openwrt-18.06-k5.4" --single-branch "https://github.com/immortalwrt/immortalwrt" "immortalwrt"
-        mkdir -v firmware/ package/ buildinfo/ upload/ && mkdir -pv "/home/runner/immortalwrt/files/etc/config/"
+        mkdir -v firmware/ package/ buildinfo/ upload/ 
+        mkdir -pv "/home/runner/immortalwrt/files/etc/config/"
         #cp -f "${GITHUB_WORKSPACE}/config/R2S-seed.config" "/home/runner/immortalwrt/.config"
         cp -f "${GITHUB_WORKSPACE}/files/R2S/proxy_resolv.conf" "/home/runner/immortalwrt/files/etc/proxy_resolv.conf"
         cp -f "${GITHUB_WORKSPACE}/files/R2S/dhcp" "/home/runner/immortalwrt/files/etc/config/dhcp"
