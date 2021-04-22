@@ -30,7 +30,7 @@ config interface 'wan'
 	option peerdns '0'
 	option keepalive '0'
 	option username 'test'
-	option dns '202.96.128.166 202.96.128.68 202.96.128.86'
+	option dns '202.96.128.68 202.96.128.166 202.96.128.86'
 	option password 'test'
 
 config device 'wan_eth0_dev'
